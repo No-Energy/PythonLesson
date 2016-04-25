@@ -23,7 +23,7 @@ def downImg(imgurl):
     start = time.time()
     picname = str(start).replace('.', '')[-11:]
     picname = os.path.join('/Users/No_Energy/Documents/File', ('%s.jpg' % picname))
-    #os.path.join连接两个文件名地址，就比os.path.join("D:\","test.txt")结果是D:\test.txt,需要存在目录
+    # os.path.join连接两个文件名地址，就比os.path.join("D:\","test.txt")结果是D:\test.txt,需要存在目录
     urllib.request.urlretrieve(imgurl, picname)
     end = time.time()
     print('down %s.jpg successful,use %.2f s' % (picname, (end - start)))
