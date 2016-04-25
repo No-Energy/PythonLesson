@@ -4,7 +4,6 @@ import re
 from multiprocessing import Pool
 import time
 
-
 def getHtml(url):
     page = urllib.request.urlopen(url)
     html = page.read()

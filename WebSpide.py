@@ -1,6 +1,6 @@
-from multiprocessing import Pool
-import requests
-import bs4
+from multiprocessing import Pool #线程池
+import requests #第三方库，类似于urllib.request，是Python较好用的http client
+import bs4 #第三方库，BeautifulSoup
 import time
 
 

@@ -1,6 +1,6 @@
 #coding=utf-8
-import urllib.request
-import re
+import urllib.request #自带库，2.#版本引用 urllib即可
+import re #正则库
 
 
 def getHtml(url):
