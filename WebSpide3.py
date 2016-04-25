@@ -4,6 +4,7 @@ import re
 from multiprocessing import Pool
 import time
 
+
 def getHtml(url):
     page = urllib.request.urlopen(url)
     html = page.read()
@@ -15,6 +16,7 @@ def getImg(html):
     imgre = re.compile(reg)
     imglist = re.findall(imgre, html)
     return imglist
+
 
 def downImg(imgurl):
     start = time.time()
