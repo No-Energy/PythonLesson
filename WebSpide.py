@@ -1,6 +1,7 @@
-from multiprocessing import Pool #Ïß³Ì³Ø
-import requests #µÚÈý·½¿â£¬ÀàËÆÓÚurllib.request£¬ÊÇPython½ÏºÃÓÃµÄhttp client
-import bs4 #µÚÈý·½¿â£¬BeautifulSoup
+#coding=utf-8
+from multiprocessing import Pool  # çº¿ç¨‹æ± 
+import requests  # ç¬¬ä¸‰æ–¹åº“ï¼Œç±»ä¼¼äºŽurllib.requestï¼Œæ˜¯Pythonè¾ƒå¥½ç”¨çš„http client
+import bs4  # ç¬¬ä¸‰æ–¹åº“ï¼ŒBeautifulSoup
 import time
 
 
@@ -41,6 +42,6 @@ if __name__=='__main__':
   write=str(dataList)
   print('use: %.2f s' % (end - start))
   print(write)
-  f = open("data.txt", "w") # open for writing, the file will be created if the file doesn't exist
+  f = open("/Users/No_Energy/Documents/File/data.txt", "w") # open for writing, the file will be created if the file doesn't exist
   f.write(write) # write text to file
   f.close() # close the file
