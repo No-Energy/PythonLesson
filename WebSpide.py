@@ -1,23 +1,26 @@
-__author__ = 'Josh.Yan'
 from multiprocessing import Pool
 import requests
 import bs4
 import time
 
+
 root_url = 'http://wufazhuce.com'
+
 
 def get_url(num):
     return root_url + '/one/' + str(num)
+
 
 def get_urls(num):
     urls = map(get_url, range(100,100+num))
     return urls
 
+
 def get_data(url):
   dataList = ''
   response = requests.get(url)
   if response.status_code != 200:
-      return 'noValue'
+    return 'noValue'
   soup = bs4.BeautifulSoup(response.text,"html.parser")
   dataList += soup.title.string[4:7]
   for meta in soup.select('meta'):
@@ -25,6 +28,7 @@ def get_data(url):
       dataList += meta.get('content')
   dataList += soup.find_all('img')[1]['src']
   return dataList
+
 
 if __name__=='__main__':
   pool = Pool(4)
