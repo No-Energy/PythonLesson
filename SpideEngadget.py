@@ -17,8 +17,8 @@ def getContentList(html):
     for contentOriginal in contentList:
         index = contentOriginal.rfind('/">') + 3
         content = contentOriginal[index:]
-        contentUrl = re.search(r'href="(.*?)', contentOriginal)
-        print(content + contentUrl)
+        contentUrl = re.search(r'href="(.*)">', contentOriginal)
+        print('Text:%s Url:%s' %(content,contentUrl.group(1)))
 
 if __name__=='__main__':
     html = getHtml("http://cn.engadget.com")
