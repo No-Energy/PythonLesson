@@ -22,13 +22,21 @@ def _get_full_content(title, get_url):
     comment_page = urllib.request.urlopen(comment_url)
     comment_json = comment_page.read().decode('utf-8')
     comment_data = json.loads(comment_json)
-    print(comment_data)
+    postIdList = comment_data['response']
+    if len(postIdList) > 0:
+        postData = comment_data['parentPosts']
+        for postId in postIdList:
+            print(postData[postId]['message'])
+    else:
+        print("no data")
+
+    #print(comment_data)
 
 if __name__=='__main__':
-    # with open("config.json", 'r') as jsonFile:
-    #   jsonData = json.load(jsonFile)
+    #with open("config.json", 'r') as jsonFile:
+    #   jsonData = json.loads(jsonFile)
 
-    url = 'http://cn.engadget.com'
+    url = 'http://cn.engadget.com/page/1/'
     page = urllib.request.urlopen(url)
     html = page.read().decode('utf-8')
     # html_reg = r'<h2 (.*?)</a>'
