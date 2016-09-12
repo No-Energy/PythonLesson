@@ -26,30 +26,36 @@ def _get_full_content(title, get_url):
     if len(postIdList) > 0:
         postData = comment_data['parentPosts']
         for postId in postIdList:
-            print(postData[postId]['message'])
+            if not ("children" in postData[postId]):
+                message = postData[postId]['message'].replace('<br />', '')
+                name = postData[postId]['author']['name']
+                print(name + ':' + message)
+            else:
+                #使用递归，依次返回一个主评论的值
+                print("ok")
     else:
-        print("no data")
+        print("no comment")
 
     #print(comment_data)
 
 if __name__=='__main__':
     #with open("config.json", 'r') as jsonFile:
     #   jsonData = json.loads(jsonFile)
-
-    url = 'http://cn.engadget.com/page/1/'
-    page = urllib.request.urlopen(url)
-    html = page.read().decode('utf-8')
-    # html_reg = r'<h2 (.*?)</a>'
-    # 先对正则表达式建立pattern，方便之后可以重复使用
-    # 因为直接送入表达式也会默认生成pattern，且能提高效率，这边只使用一次，无必要
-    # html_re = re.compile(htmlReg)
-    # content_List = re.findall(htmlRe, html)
-    content_list = re.findall(r'<h2 class="h2" itemprop="headline">(.*?)</h2>', html)
-    for content_original in content_list:
-        # index = contentOriginal.rfind('/">') + 3
-        content = re.search(r'/">(.*)</a>', content_original).group(1)
-        content_url = re.search(r'href="(.*)">', content_original).group(1)
-        print('Text:%s Url:%s' % (content, content_url))
-        _get_full_content(content, content_url)
+    for index in range(1, 10):
+        url = 'http://cn.engadget.com/page/' + str(index) + '/'
+        page = urllib.request.urlopen(url)
+        html = page.read().decode('utf-8')
+        # html_reg = r'<h2 (.*?)</a>'
+        # 先对正则表达式建立pattern，方便之后可以重复使用
+        # 因为直接送入表达式也会默认生成pattern，且能提高效率，这边只使用一次，无必要
+        # html_re = re.compile(htmlReg)
+        # content_List = re.findall(htmlRe, html)
+        content_list = re.findall(r'<h2 class="h2" itemprop="headline">(.*?)</h2>', html)
+        for content_original in content_list:
+            # index = contentOriginal.rfind('/">') + 3
+            content = re.search(r'/">(.*)</a>', content_original).group(1)
+            content_url = re.search(r'href="(.*)">', content_original).group(1)
+            print('Text:%s Url:%s' % (content, content_url))
+            _get_full_content(content, content_url)
     print('all')
 
