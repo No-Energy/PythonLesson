@@ -38,10 +38,10 @@ if __name__=='__main__':
   start = time.time()
   dataList = pool.map(get_data, urls)
   end = time.time()
-  #write = str(repr(dataList).decode('unicode-escape'))
+  # write = str(repr(dataList).decode('unicode-escape'))
   write=str(dataList)
   print('use: %.2f s' % (end - start))
   print(write)
-  f = open("/Users/No_Energy/Documents/File/data.txt", "w") # open for writing, the file will be created if the file doesn't exist
+  f = open("/Users/No_Energy/Documents/data.txt", "w")  # open for writing, the file will be created if the file doesn't exist
   f.write(write) # write text to file
   f.close() # close the file
