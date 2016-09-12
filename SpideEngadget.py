@@ -22,21 +22,48 @@ def _get_full_content(title, get_url):
     comment_page = urllib.request.urlopen(comment_url)
     comment_json = comment_page.read().decode('utf-8')
     comment_data = json.loads(comment_json)
-    postIdList = comment_data['response']
-    if len(postIdList) > 0:
-        postData = comment_data['parentPosts']
-        for postId in postIdList:
-            if not ("children" in postData[postId]):
-                message = postData[postId]['message'].replace('<br />', '')
-                name = postData[postId]['author']['name']
-                print(name + ':' + message)
-            else:
-                #使用递归，依次返回一个主评论的值
-                print("ok")
+    post_id_list = comment_data['response']
+    if len(post_id_list) > 0:
+        post_data_list = comment_data['parentPosts']
+
+        post_id_list = {}
+        for postId in post_data_list:
+            post_data = post_data_list[postId]
+            # 判断，去除原评论，子评论通过children节点获取,先获取所有父节点，按时间排序
+            if len(post_data['parents']) == 0:
+                post_id_list.setdefault(postId, post_data['created_at'])
+        # 选择值是所有的items，使用lambda方法对item中的第二个值排序
+        sort_post_id_list = sorted(post_id_list.items(), key=lambda d: d[1])
+
+        # 按排序结果输出评论，由于排序结果返回已经将字典转化为列(数组)的结构，所以需要在数组值后取前一位
+        for sort_post_id in sort_post_id_list:
+            post_data = post_data_list[sort_post_id[0]]
+            message = post_data['message'].replace('<br />', '')
+            likes = post_data['likes']
+            name = post_data['author']['name']
+            print('>' + name + ':' + message + ' 推(' + str(likes) + ')')
+            if "children" in post_data:
+                # 第一级子评论
+                _get_children_comment(1, post_data['children'])
     else:
         print("no comment")
 
-    #print(comment_data)
+
+def _get_children_comment(children_index, children_data):
+    children_index += 1
+    for post_data in children_data:
+        message = post_data['message'].replace('<br />', '')
+        likes = post_data['likes']
+        name = post_data['author']['name']
+        print('>' * children_index + name + ':' + message + ' 推(' + str(likes) + ')')
+        if not ("children" in post_data):
+            continue
+        else:
+            # 使用递归，依次返回一个主评论的值
+            _get_children_comment(children_index, post_data['children'])
+    # 节点下所有评论遍历结束，返回
+    return
+
 
 if __name__=='__main__':
     #with open("config.json", 'r') as jsonFile:
