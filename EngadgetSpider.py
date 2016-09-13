@@ -38,10 +38,11 @@ def _get_full_content(title, get_url):
         # 按排序结果输出评论，由于排序结果返回已经将字典转化为列(数组)的结构，所以需要在数组值后取前一位
         for sort_post_id in sort_post_id_list:
             post_data = post_data_list[sort_post_id[0]]
-            message = post_data['message'].replace('<br />', '')
+            message = post_data['message']#.replace('<br />', '')
             likes = post_data['likes']
             name = post_data['author']['name']
-            print('>' + name + ':' + message + ' 推(' + str(likes) + ')')
+            print('>' + name + ':  ')
+            print('>' + message + ' 推(' + str(likes) + ') \n')
             if "children" in post_data:
                 # 第一级子评论
                 _get_children_comment(1, post_data['children'])
@@ -52,10 +53,11 @@ def _get_full_content(title, get_url):
 def _get_children_comment(children_index, children_data):
     children_index += 1
     for post_data in children_data:
-        message = post_data['message'].replace('<br />', '')
+        message = post_data['message']#.replace('<br />', '')
         likes = post_data['likes']
         name = post_data['author']['name']
-        print('>' * children_index + name + ':' + message + ' 推(' + str(likes) + ')')
+        print('>' * children_index + name + ':  ')
+        print('>' * children_index + message + ' 推(' + str(likes) + ') \n')
         if not ("children" in post_data):
             continue
         else:
@@ -66,9 +68,15 @@ def _get_children_comment(children_index, children_data):
 
 
 if __name__=='__main__':
-    #with open("config.json", 'r') as jsonFile:
-    #   jsonData = json.loads(jsonFile)
-    for index in range(1, 10):
+    try:
+        json_file = open("config.json")
+        json_data = json.loads(json_file.read(), 'r')
+    except IOError:
+        print("config file error")
+    pages = json_data['pages'] + 1
+    is_get_img = json_data['get_img']
+
+    for index in range(1, pages):
         url = 'http://cn.engadget.com/page/' + str(index) + '/'
         page = urllib.request.urlopen(url)
         html = page.read().decode('utf-8')
@@ -82,7 +90,7 @@ if __name__=='__main__':
             # index = contentOriginal.rfind('/">') + 3
             content = re.search(r'/">(.*)</a>', content_original).group(1)
             content_url = re.search(r'href="(.*)">', content_original).group(1)
-            print('Text:%s Url:%s' % (content, content_url))
+            print('# Text:%s Url:%s' % (content, content_url))
             _get_full_content(content, content_url)
     print('all')
 
