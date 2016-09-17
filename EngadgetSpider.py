@@ -3,6 +3,11 @@ import urllib.request  # 自带库，2.#版本引用 urllib即可
 import re  # 正则库
 import json  # json库
 import os  # 系统库
+from multiprocessing import Pool  # 线程池
+import multiprocessing  # 多进程
+import threading  # 线程
+import time
+import sys
 
 # 是否下载图片
 is_get_img = True
@@ -12,8 +17,10 @@ def down_img(path, img_url):
     pic_name = img_url[img_url.rindex('/') + 1:]
     file_pic_name = path + pic_name
     # os.path.join连接两个文件名地址，就比os.path.join("D:\","test.txt")结果是D:\test.txt,需要存在目录
-    urllib.request.urlretrieve(img_url, file_pic_name)
-    print('down %s.jpg successful' % pic_name)
+    if not os.path.exists(file_pic_name):
+        urllib.request.urlretrieve(img_url, file_pic_name)
+    # print('down %s successful' % pic_name)
+    return
 
 
 def _get_children_comment(children_index, children_data, comment_data_list):
@@ -35,7 +42,17 @@ def _get_children_comment(children_index, children_data, comment_data_list):
     return
 
 
-def _get_full_content(get_url):
+def _get_full_content(get_url, page_id, content_id):
+    # 根据地址网址创建本地路径
+    title_path = get_url.replace('http://cn.engadget.com', '')
+    path = os.getcwd() + title_path
+    image_path = path + 'image/'
+    if len(json_data['path']) > 0:
+        path = json_data['path']
+    # 检查是否存在路径，若不存在则建立路径, image_path 包含了 path 地址
+    if not os.path.exists(image_path):
+        os.makedirs(image_path)
+
     # 读取内容页
     content_page = urllib.request.urlopen(get_url)
     content_html = content_page.read().decode('utf-8')
@@ -43,21 +60,38 @@ def _get_full_content(get_url):
     # 正则获取标题
     # re搜寻返回结果使用group读取，默认0是匹配原文，1是匹配第一个括号内结果，类推
     title = re.search(r'<title>(.*)</title>', content_html).group(1)
-    print('# Text:%s Url:%s' % (title, get_url))
 
-    # get content by re
-    content = re.search(r'<div class="copy post-body(.*)<!-- /.post-body -->', content_html, re.DOTALL).group(0)
 
-    # get image url by re
-    image_url_list = []
+    # 设置正文内容
+    # 设置标题
+    content = '<h1 class="h1" itemprop="headline">' + title + '</h1>'
+    # 设置内容
+    content += re.search(r'<div class="copy post-body(.*)<!-- /.post-body -->', content_html, re.DOTALL).group(0)
+
+    # 获取页面内图集地址
+    gallery_html_list = re.findall(r'<div class="post-gallery">.*</script>', content, re.DOTALL)
+    for gallery_html in gallery_html_list:
+        content = content.replace(gallery_html, '/gallery.html')
+
+    # 获取页面内图片网址
     if is_get_img:
-        image_url_list = re.findall(r'<img alt="" src="(.*[jpg|jpeg|gif|png|bmp])"', content)
+        image_url_list = re.findall(r'src="(.*[jpg|jpeg|gif|png|bmp])"', content)
+        # 遍历图片网址下载
+        for img_url in image_url_list:
+            # 碰到有些地址直接填写类似 //cdn.com/a.jpg
+            if img_url.count('http') == 0:
+                down_img(image_path, 'http:' + img_url)
+            else:
+                down_img(image_path, img_url)
+            # 下载后替换正文内网络地址，更改为本地地址
+            file_img_path = image_path + img_url[img_url.rindex('/') + 1:]
+            content = re.sub(img_url, file_img_path, content)
 
     # 匹配获取页面的POST ID
     post_id = re.search(r'var postID = \'(.*)\';', content_html).group(1)
     # 将地址中的:和/转换伪url编码,由于默认quote方法不编码/,所以传入safe=''
     # switchUrl = url.replace(':', '%3A').replace('/', '%2F')
-    switch_url = urllib.request.quote(url, safe='')
+    switch_url = urllib.request.quote(get_url, safe='')
     # 将标题全文转换伪url编码,使用urllib库里自带quote方法
     switch_title = urllib.request.quote(title, safe='')
     comment_url = 'http://engadget.duoshuo.com/api/threads/listPosts.json?thread_key='\
@@ -93,24 +127,52 @@ def _get_full_content(get_url):
             # 第一级子评论
             _get_children_comment(1, post_data['children'], comment_data_list)
 
-    # output full content
     # 输出内容
-    title_path = get_url.replace('http://cn.engadget.com', '')
-    path = os.getcwd() + title_path
-    if len(json_data['path']) > 0:
-        path = json_data['path']
-    # 检查是否存在路径，若不存在则建立路径
-    if not os.path.exists(path):
-        os.makedirs(path)
     file_path = path + 'index.html'
     # open with utf-8 coding if gbk can't convert special code
     f = open(file_path, 'w', encoding='utf-8')
     f.write(content + ''.join(comment_data_list))
     f.close()
-    print('ok')
+    # print('# Text:%s Url:%s' % (title, get_url))
+    # print('page: ' + str(page_id) + ' content: ' + str(content_id) + ' ok')
+    print('#page: %s content: %s Title: %s' % (page_id, content_id, title))
+    sys.exit(0)
 
-    for img_url in image_url_list:
-        down_img(path, img_url)
+
+def _get_data_process(url, page_id):
+    page = urllib.request.urlopen(url)
+    html = page.read().decode('utf-8')
+    del page
+    # html_reg = r'<h2 (.*?)</a>'
+    # 先对正则表达式建立pattern，方便之后可以重复使用
+    # 因为直接送入表达式也会默认生成pattern，且能提高效率，这边只使用一次，无必要
+    # html_re = re.compile(htmlReg)
+    # content_List = re.findall(htmlRe, html)
+    content_url_list = re.findall(r'<a itemprop="url" href="(.*)">', html)
+    del html
+
+    content_id = 1
+    pool_list = []
+    for content_url in content_url_list:
+        content_p = multiprocessing.Process(target=_get_full_content, args=(content_url, page_id, content_id))
+        content_p.start()
+        # content_t.join()
+        # del content_t
+        pool_list.append(content_p)
+        content_id += 1
+
+    for pool in pool_list:
+        pool.join()
+
+    # pool = Pool(4)
+    # pool.map(_get_full_content, content_url_list)
+    # pool.join()
+    print('------page: ' + str(page_id) + ' ok------')
+    sys.exit(0)
+
+    # for content_url in content_url_list:
+    #    _get_full_content(content_url)
+
 
 if __name__=='__main__':
     try:
@@ -122,16 +184,16 @@ if __name__=='__main__':
     pages = json_data['pages'] + 1
     is_get_img = json_data['get_img']
 
+    process_list = []
     for index in range(1, pages):
-        url = 'http://cn.engadget.com/page/' + str(index) + '/'
-        page = urllib.request.urlopen(url)
-        html = page.read().decode('utf-8')
-        # html_reg = r'<h2 (.*?)</a>'
-        # 先对正则表达式建立pattern，方便之后可以重复使用
-        # 因为直接送入表达式也会默认生成pattern，且能提高效率，这边只使用一次，无必要
-        # html_re = re.compile(htmlReg)
-        # content_List = re.findall(htmlRe, html)
-        content_url_list = re.findall(r'<a itemprop="url" href="(.*)">', html)
-        for content_url in content_url_list:
-            _get_full_content(content_url)
-    print('all')
+        page_url = 'http://cn.engadget.com/page/' + str(index) + '/'
+        p = multiprocessing.Process(target=_get_data_process, args=(page_url, index))
+        p.start()
+        # p.join()
+        # del p
+        process_list.append(p)
+
+    for process in process_list:
+        process.join()
+
+    print('all page down')
