@@ -9,46 +9,41 @@ import threading  # 线程
 import time
 import sys
 
-# 是否下载图片
-is_get_img = True
 
-
-def down_img(path, img_url):
-    pic_name = img_url[img_url.rindex('/') + 1:]
-    file_pic_name = path + pic_name
+def _down_img(_path, _img_url):
+    pic_name = _img_url[_img_url.rindex('/') + 1:]
+    file_pic_name = _path + pic_name
     # os.path.join连接两个文件名地址，就比os.path.join("D:\","test.txt")结果是D:\test.txt,需要存在目录
     if not os.path.exists(file_pic_name):
-        urllib.request.urlretrieve(img_url, file_pic_name)
+        urllib.request.urlretrieve(_img_url, file_pic_name)
     # print('down %s successful' % pic_name)
     return
 
 
-def _get_children_comment(children_index, children_data, comment_data_list):
-    children_index += 1
-    for post_data in children_data:
-        message = post_data['message']#.replace('<br />', '')
+def _get_children_comment(_children_index, _children_data, _comment_data_list):
+    _children_index += 1
+    for post_data in _children_data:
+        message = post_data['message']  # .replace('<br />', '')
         likes = post_data['likes']
         name = post_data['author']['name']
-        comment_data_list.append('>' * children_index + name + ':  ')
-        comment_data_list.append('>' * children_index + message + ' 推(' + str(likes) + ') \n')
+        _comment_data_list.append('>' * _children_index + name + ':  ')
+        _comment_data_list.append('>' * _children_index + message + ' 推(' + str(likes) + ') \n')
         # print('>' * children_index + name + ':  ')
         # print('>' * children_index + message + ' 推(' + str(likes) + ') \n')
         if not ("children" in post_data):
             continue
         else:
             # 使用递归，依次返回一个主评论的值
-            _get_children_comment(children_index, post_data['children'], comment_data_list)
+            _get_children_comment(_children_index, post_data['children'], _comment_data_list)
     # 节点下所有评论遍历结束，返回
     return
 
 
-def _get_full_content(get_url, page_id, content_id):
+def _get_full_content(get_url, _config_data, _page_id, content_id):
     # 根据地址网址创建本地路径
     title_path = get_url.replace('http://cn.engadget.com', '')
-    path = os.getcwd() + title_path
+    path = _config_data['path'] + title_path
     image_path = path + 'image/'
-    if len(json_data['path']) > 0:
-        path = json_data['path']
     # 检查是否存在路径，若不存在则建立路径, image_path 包含了 path 地址
     if not os.path.exists(image_path):
         os.makedirs(image_path)
@@ -60,7 +55,6 @@ def _get_full_content(get_url, page_id, content_id):
     # 正则获取标题
     # re搜寻返回结果使用group读取，默认0是匹配原文，1是匹配第一个括号内结果，类推
     title = re.search(r'<title>(.*)</title>', content_html).group(1)
-
 
     # 设置正文内容
     # 设置标题
@@ -74,15 +68,15 @@ def _get_full_content(get_url, page_id, content_id):
         content = content.replace(gallery_html, '/gallery.html')
 
     # 获取页面内图片网址
-    if is_get_img:
+    if _config_data['get_img']:
         image_url_list = re.findall(r'src="(.*[jpg|jpeg|gif|png|bmp])"', content)
         # 遍历图片网址下载
         for img_url in image_url_list:
             # 碰到有些地址直接填写类似 //cdn.com/a.jpg
             if img_url.count('http') == 0:
-                down_img(image_path, 'http:' + img_url)
+                _down_img(image_path, 'http:' + img_url)
             else:
-                down_img(image_path, img_url)
+                _down_img(image_path, img_url)
             # 下载后替换正文内网络地址，更改为本地地址
             file_img_path = image_path + img_url[img_url.rindex('/') + 1:]
             content = re.sub(img_url, file_img_path, content)
@@ -116,7 +110,7 @@ def _get_full_content(get_url, page_id, content_id):
     # 按排序结果输出评论，由于排序结果返回已经将字典转化为列(数组)的结构，所以需要在数组值后取前一位
     for sort_post_id in sort_post_id_list:
         post_data = post_data_list[sort_post_id[0]]
-        message = post_data['message']#.replace('<br />', '')
+        message = post_data['message']  # .replace('<br />', '')
         likes = post_data['likes']
         name = post_data['author']['name']
         comment_data_list.append('>' + name + ':  ')
@@ -135,12 +129,12 @@ def _get_full_content(get_url, page_id, content_id):
     f.close()
     # print('# Text:%s Url:%s' % (title, get_url))
     # print('page: ' + str(page_id) + ' content: ' + str(content_id) + ' ok')
-    print('#page: %s content: %s Title: %s' % (page_id, content_id, title))
+    print('#page: %s content: %s Title: %s' % (_page_id, content_id, title))
     sys.exit(0)
 
 
-def _get_data_process(url, page_id):
-    page = urllib.request.urlopen(url)
+def _get_data_process(_page_url, _page_id, _config):
+    page = urllib.request.urlopen(_page_url)
     html = page.read().decode('utf-8')
     del page
     # html_reg = r'<h2 (.*?)</a>'
@@ -154,42 +148,55 @@ def _get_data_process(url, page_id):
     content_id = 1
     pool_list = []
     for content_url in content_url_list:
-        content_p = multiprocessing.Process(target=_get_full_content, args=(content_url, page_id, content_id))
+        content_p = multiprocessing.Process(target=_get_full_content, args=(content_url, _config, _page_id, content_id))
+        content_p.daemon = True
         content_p.start()
-        # content_t.join()
-        # del content_t
-        pool_list.append(content_p)
+        content_p.join()
+        del content_p
+        # pool_list.append(content_p)
         content_id += 1
 
-    for pool in pool_list:
-        pool.join()
+    # for pool in pool_list:
+    #     pool.join()
 
-    # pool = Pool(4)
-    # pool.map(_get_full_content, content_url_list)
+    # content_id = 1
+    # pool = Pool(processes=4)
+    # for content_url in content_url_list:
+    #     pool.apply(func=_get_full_content, args=(content_url, _config, _page_id, content_id))
+    #     content_id += 1
+    # pool.close()
     # pool.join()
-    print('------page: ' + str(page_id) + ' ok------')
+
+    # pool.map(_get_full_content, content_url_list)
+
+    print('------page: ' + str(_page_id) + ' ok------')
     sys.exit(0)
 
     # for content_url in content_url_list:
     #    _get_full_content(content_url)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
+    pages = 0
+    config = {}
     try:
         json_file = open("config.json")
         json_data = json.loads(json_file.read(), 'r')  # r只读;w可写,创建;a追加,创建;w+可读,可写,创建;a+可读,追加,创建
         json_file.close()
+        pages = json_data['pages'] + 1
+        if len(json_data['path']) > 0:
+            config.setdefault('path', json_data['path'])
+        else:
+            config.setdefault('path', os.getcwd())
+        config.setdefault('get_img', json_data['get_img'])
     except IOError:
         print("config file error")
-    pages = json_data['pages'] + 1
-    is_get_img = json_data['get_img']
 
     process_list = []
-    for index in range(1, pages):
-        page_url = 'http://cn.engadget.com/page/' + str(index) + '/'
-        p = multiprocessing.Process(target=_get_data_process, args=(page_url, index))
+    for page_id in range(1, pages):
+        page_url = 'http://cn.engadget.com/page/' + str(page_id) + '/'
+        p = multiprocessing.Process(target=_get_data_process, args=(page_url, page_id, config))
         p.start()
-        # p.join()
         # del p
         process_list.append(p)
 
