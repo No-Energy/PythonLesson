@@ -151,13 +151,13 @@ def _get_data_process(_page_url, _page_id, _config):
         content_p = multiprocessing.Process(target=_get_full_content, args=(content_url, _config, _page_id, content_id))
         content_p.daemon = True
         content_p.start()
-        content_p.join()
-        del content_p
-        # pool_list.append(content_p)
+        # content_p.join()
+        # del content_p
+        pool_list.append(content_p)
         content_id += 1
 
-    # for pool in pool_list:
-    #     pool.join()
+    for pool in pool_list:
+        pool.join()
 
     # content_id = 1
     # pool = Pool(processes=4)
